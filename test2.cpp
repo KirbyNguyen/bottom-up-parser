@@ -61,12 +61,20 @@ int stateTable[12][9] = {
     {EMPTY, R5, R5, EMPTY, R5, R5, EMPTY, EMPTY, EMPTY},
 };
 
-void stackPrinter()
+void stackPrinter(stack<string> dump)
 {
-    for (stack<string> dump = helperStack; !dump.empty(); dump.pop())
-        cout << dump.top();
+    if (dump.empty())
+        return;
 
-    cout << endl;
+    string TOS = dump.top();
+
+    dump.pop();
+
+    stackPrinter(dump);
+
+    cout << TOS;
+
+    dump.push(TOS);
 };
 
 string getString(char x)
@@ -149,7 +157,8 @@ int main()
     bool isLoop = true;
 
     cout << "Stack ";
-    stackPrinter();
+    stackPrinter(helperStack);
+    cout << endl;
 
     cout << "Input " << testInput << endl;
 
@@ -242,7 +251,9 @@ int main()
             break;
         }
         cout << "Stack ";
-        stackPrinter();
+        stackPrinter(helperStack);
+        cout << endl;
+
         cout << "Input " << testInput.substr(inputIndex, testInput.length()) << endl;
     }
 
