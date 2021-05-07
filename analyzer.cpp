@@ -10,6 +10,7 @@ stack<char> helperStack;
 
 void stackPrinter()
 {
+    cout << "The current stack is: ";
     for (stack<char> dump = helperStack; !dump.empty(); dump.pop())
         cout << dump.top();
 
@@ -39,11 +40,12 @@ int main()
                 inputIndex++;
 
             helperStack.pop();
+            cout << "After popping" << endl;
         }
         else if (helperStack.top() == 'E' && testInput[inputIndex] == '(')
         {
             stackPrinter();
-            cout << testInput[inputIndex] << endl;
+            cout << "Current character " << testInput[inputIndex] << endl;
             cout << "Rule no. 1" << endl;
 
             helperStack.pop();
@@ -53,7 +55,7 @@ int main()
         else if (helperStack.top() == 'E' && isalpha(testInput[inputIndex]))
         {
             stackPrinter();
-            cout << testInput[inputIndex] << endl;
+            cout << "Current character " << testInput[inputIndex] << endl;
             cout << "Rule no. 1" << endl;
 
             helperStack.pop();
@@ -87,7 +89,7 @@ int main()
         else if (helperStack.top() == 'T' && testInput[inputIndex] == '(')
         {
             stackPrinter();
-            cout << testInput[inputIndex] << endl;
+            cout << "Current character " << testInput[inputIndex] << endl;
             cout << "Rule no. 5" << endl;
 
             helperStack.pop();
@@ -97,7 +99,7 @@ int main()
         else if (helperStack.top() == 'T' && isalpha(testInput[inputIndex]))
         {
             stackPrinter();
-            cout << testInput[inputIndex] << endl;
+            cout << "Current character " << testInput[inputIndex] << endl;
             cout << "Rule no. 5" << endl;
 
             helperStack.pop();
@@ -134,7 +136,7 @@ int main()
         else if (helperStack.top() == 'F' && isalpha(testInput[inputIndex]))
         {
             stackPrinter();
-            cout << testInput[inputIndex] << endl;
+            cout << "Current character " << testInput[inputIndex] << endl;
             cout << "Rule no. 10" << endl;
 
             helperStack.pop();
@@ -143,17 +145,18 @@ int main()
         else if (helperStack.top() == 'I' && isalpha(testInput[inputIndex]))
         {
             stackPrinter();
-            cout << testInput[inputIndex] << endl;
+            cout << "Current character " << testInput[inputIndex] << endl;
             cout << "Rule no. 11" << endl;
 
             helperStack.pop();
             helperStack.push(testInput[inputIndex]);
 
             stackPrinter();
-            cout << testInput[inputIndex] << endl;
+            cout << "Current character " << testInput[inputIndex] << endl;
         }
     }
 
     stackPrinter();
+    cout << "Ending" << endl;
     return 0;
 }
