@@ -1,0 +1,13 @@
+0)	Z’ -> <Z>
+1)	<Z> -> <While> | <If> | <Statement>
+2)	<While> -> while (<Compound>) <Statement> while-end 
+3)	<If> -> if (<Compound>) <Statement> if-end
+4)	<Compound> -> <Expression> <Compare> <Expression>
+5)	<Compare> -> == | ^= | > | < | => | =< 
+6)	<Statement> -> <Assign> | <Declarative> | <Expression>
+7)	<Assign> -> id = <Expression>
+8)	<Declarative> -> <Type> id
+9)	<Type> -> bool | float | int
+10)	<Expression> -> <Expression> + <Term> | <Expression> - <Term> | <Term>
+11)	<Term> -> <Term> * <Factor> | <Term> / <Factor> | <Factor>
+12)	<Factor> -> (<Expression>) | id | num
