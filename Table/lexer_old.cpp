@@ -314,9 +314,6 @@ string format(string type)
     {
         return "real number";
     }
-    cout << "\n\n**[line 299/331 lexer.cpp] bad syntax error: identifier type is invalid **\n";
-    cout << "\n**Now Exiting... **\n\n";
-    exit(-1);
     return "other";
 }
 
@@ -378,7 +375,6 @@ class Expr
     string prev;                        // holds previous lexeme, used for syntax checks
     int curr = 0;                       // current string ptr
     bool assigned = false;              // false if an assignment-statement is needed (before EQUALS sign)
-    bool decl = false;                  // declarative finder
     bool once = true;                   // prevent printing assignment-statement multiple times
     bool artificial;                    // don't print production details for fake semicolons
     pair<string,string> prodRules;      // experimental
@@ -461,20 +457,10 @@ class Expr
     {
         if (S == "") {return NULL;}
         string tmp;
-        //  Overrides for tokens belonging to statement assignment-declaration
-        if (!decl && token.lexemeNum == KEYWORD)
+        //  Override for tokens belonging to statement assignment-declaration
+        if (!assigned)
         {
-            tmp +=  "    <Statement> -> <Declarative>\n"
-                    "    <Declarative> -> <Type> <ID> <MoreIds>; | <empty>\n"
-                    "    <Type> -> int | float | bool\n"
-                    "    <MoreIds> -> , <ID> <MoreIds>| <empty>\n";
-            cout << tmp;
-            decl = true;
-            return "";
-        }
-        else if (!assigned)
-        {
-            if (once && token.lexemeNum != KEYWORD)
+            if (once)
             {
                 tmp = "     <Statement> -> <Assign>\n     <Assign> -> <ID> = <Expression>;\n"
                       "     <Statement> -> <Declarative>\n     <Declarative> -> <Type> <ID>\n"
@@ -490,22 +476,12 @@ class Expr
         {
             return "";
         }
-        if (token.lexemeNum == KEYWORD)
-        {
-            return "";
-        }
-            
+        //  needs fixing ~ done
         //  Production Rules for all tokens belonging to Expression are printed here
         for (char c : S)
         {
             switch(c)
             {
-                case 'S' :      // statement declaration
-                    tmp +=  "    <Statement> -> <Declarative>\n"
-                            "    <Declarative> -> <Type> <ID> <MoreIds>; | <empty>\n"
-                            "    <Type> -> int | float | bool\n"
-                            "    <MoreIds> -> , <ID> <MoreIds>| <empty>";
-                    break;
                 case 'E' :      //  expand E -> T E'
                     tmp += "    <Expression> -> <Term> <ExpressionPrime> ";
                     break;
@@ -659,6 +635,12 @@ class Expr
         //  Loop until error or end of sentence / bottom of stack is reached
         int k = 0;
         for(auto tkn : tkns) {
+            if (tkn.lexeme == ",")
+            { 
+                stk.push("T");
+                fullstack.push_front("T");
+                continue;
+            }
             token = tkn;
             str2 = token.lexeme;
             //  Print the token and lexeme about to be syntactically analyzed
@@ -667,17 +649,10 @@ class Expr
             print("Lexeme: ", 8);
             print(token.lexeme, 20);
             cout << endl;
-            if (tkn.lexeme == ",")
-            { 
-                stk.push("T");
-                fullstack.push_front("T");
-                continue;
-            }
             for (;;)
             {
             a = token.lexeme[0];
             X = stk.top();
-            //  Special conditions for declarative statement
             //  Special conditions for assignment statement
             if (token.lexeme == "=")
             {
@@ -685,7 +660,7 @@ class Expr
                 {
                     if (auto j = count(sentence.begin(), sentence.end(), '=') > 1 )      //  logic check for bad syntax
                     {
-                        cout << "Forbidden syntax: " << j << " occurences of the EQUALS sign { = } found \n";
+                        cout << "Forbidden syntax: " << j << " occurences of the EQUALS sign { = } found " << "\n";
                         cout << "[line 318/286 expr.cpp] Bad Syntax Error : multiple instances of the lexeme { " << a << " } were found in the current sentence\n** Now Exiting..."; exit(-1);
                     }
                 }
@@ -707,12 +682,6 @@ class Expr
                     expandTerms();
                     expansion.clear();                  
                     stk.pop(); 
-                    if (tkn.lexemeNum == KEYWORD)
-                    { 
-                        decl = (decl ? false : true);
-                        stk.push("E");
-                        fullstack.push_front("E");
-                    }
                     curr++;
                     k++;
                     //cout << formatPRs(token);
@@ -750,7 +719,6 @@ class Expr
                         while (!stk.empty()) { stk.pop();}
                         curr = 0;
                         assigned = false;
-                        decl = false;
                         once = true;
                         return true;
                     }
