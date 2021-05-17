@@ -1,11 +1,14 @@
 /**********
-
 Lexical Analyzer
-
 Group Members: Duc Nguyen (887323301), Wayne Lin (887280121)
-
 **********/
 
+/**************
+Instructions
+1) Run the .exe
+2) Enter name of text file when prompted
+3) View results
+**************/
 
 #include <stdlib.h>
 #include <iterator>
@@ -56,14 +59,15 @@ struct Token
 	int lexemeNum;
 	string lexeme;
 	string lexemeName;
-	
-	Token();
 
-	Token(int num, string lexe, string lexeName) {
-		this->lexeme = num;
-		this->lexeme = lexe;
-		this->lexemeName = lexeName;
-	}
+    Token(int num, string lex, string lexName) {
+        this->lexemeNum = num;
+        this->lexeme = lex;
+        this->lexemeName = lexemeName;
+    }
+
+    Token() {
+    }
 };
 
 // Set to hold seperators
@@ -78,7 +82,7 @@ static const unordered_set<string> KEYWORDS({"int", "float", "bool", "True", "Fa
 											 "enddo", "for", "endfor", "STDinput", "STDoutput", "and", "or", "not"});
 
 /* PROTOTYPES FOR THE FUNCTIONS */
-vector<Token> lexer(string expression);
+vector<Token> lexer(string);
 int getCharState(char currentChar, char prevState);
 string getLexemeName(int lexemeNum, string token);
 

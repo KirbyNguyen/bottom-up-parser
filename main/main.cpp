@@ -4,7 +4,6 @@
 #include <vector>
 #include <stack>
 
-#include "lexer.cpp"
 #include "constants.cpp"
 
 using namespace std;
