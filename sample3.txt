@@ -15,9 +15,9 @@ if(num > nu2m)
 }
 else
 {
-	int j = 1;
+	int j = num + nu2m;
 	if(Y > X)
-		int k = 0;
+		bool k = (num == nu2m);
 	endif
 	large$ = nu2m;
 }

@@ -51,12 +51,11 @@ int main()
     moneySign.lexemeNum = 4;
     moneySign.lexeme = "$";
     moneySign.lexemeName = "SEPERATOR";
-    // Fake semicolon
-    Token semicolon;
-    semicolon.lexemeNum = 3;
-    semicolon.lexeme = ";";
-    semicolon.lexemeName = "SEPERATOR";
-    semicolon.artificial = true;
+    // Fake null char (line break)
+    Token nullchar;
+    nullchar.lexemeNum = 3;
+    nullchar.lexeme = "\0";
+    nullchar.lexemeName = "SEPERATOR";
 
     // Read the file
     cout << "\nPlease enter the name of the file (ignore file extensions): ";
@@ -76,7 +75,7 @@ int main()
     token_ptr = 0;
 
     // Determine each token in the line
-    // Forces a semicolon at the end of lines to ensure a boundary exists between sentences
+    // Forces a null char delimiter after each line without a natural semicolon, to ensure a boundary exists between sentences
     vector<vector<Token>> tokensList;
     int k = 1;
     while (getline(infile, line))
@@ -85,26 +84,26 @@ int main()
         
         if (!temp.empty() && (temp.front().lexeme != "!" && temp.back().lexeme != "!") && temp.back().lexeme != ";")
         {            
-            temp.push_back(semicolon);
+            temp.push_back(nullchar);
         }
         if ( !temp.empty() && (temp.front().lexeme != "!" && temp.back().lexeme != "!") )
         {            
-            tokens.insert(tokens.end(), temp.begin(), temp.end());
+            //tokens.insert(tokens.end(), temp.begin(), temp.end());
             tokensList.push_back(temp);
         }
         ++k;
     }
 
-    tokens.push_back(moneySign);
+    //tokens.push_back(moneySign);
 
     // Close the file
     infile.close();
     infile.clear();
     /*
     // Parse the file one sentence (line) at a time
-    // Expr is a helper class to determine syntax using tabular method
+    // ParseExpr is a helper class to determine syntax using tabular method
     */
-    Expr expr;
+    ParseExpr expr;
     string tempstring, prev;
     t = clock();
 
@@ -137,15 +136,24 @@ int main()
         string sline = "";
         for (auto s : tkl)
         {
-            sline = sline + s.lexeme;
+            sline = sline + " "+ s.lexeme;
             //cout << s.lexemeName + "       " << s.lexeme << endl;
         }
         cout << "\n\n   ::::::::::::::::: New Line :::::::::::::::::   " << sline << "\n\n\n";
         expr.interpret(tkl);
+        tokens.insert(tokens.end(), tkl.begin(), tkl.end());
         /*for (auto tk: tkl)
         {
             expr.interpret(tk);
         }*/
+    }
+    moneySign.scope = expr.getScope();
+    tokens.push_back(moneySign);
+    Token lastToken = tokens.back();
+    if (lastToken.scope != 0)
+    {
+        cout << "\n**ERROR : scope value is not 0 at the end of file**\n"
+        " actual scope = " << lastToken.scope << "\n**Now Exiting....**";
     }
     duration = ( clock() - t ) / (double) CLOCKS_PER_SEC;
     cout << "\nParsing concluded successfully in " << duration << " seconds! \n\n";

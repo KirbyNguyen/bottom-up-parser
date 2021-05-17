@@ -78,9 +78,10 @@ int main()
     // Determine each token in the line
     // Forces a semicolon at the end of lines to ensure a boundary exists between sentences
     vector<vector<Token>> tokensList;
+    int k = 1;
     while (getline(infile, line))
     {
-        vector<Token> temp = lexer(line);
+        vector<Token> temp = lexer(line, k);
         
         if (!temp.empty() && (temp.front().lexeme != "!" && temp.back().lexeme != "!") && temp.back().lexeme != ";")
         {            
@@ -91,6 +92,7 @@ int main()
             tokens.insert(tokens.end(), temp.begin(), temp.end());
             tokensList.push_back(temp);
         }
+        ++k;
     }
 
     tokens.push_back(moneySign);
