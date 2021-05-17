@@ -64,6 +64,12 @@ enum EXPR_TYPES
 	NOTHNG
 };
 
+enum SCOPES
+{
+    GLOBAL = 0,
+    LOCAL
+};
+
 //#endif /* _MY_HEADER_H_ */
 #endif /* _MY_HEADER_H_ */
 
@@ -85,13 +91,13 @@ int stateTable[][9] = {
 */
 struct Token
 {
-	int lexemeNum, line;
+	int lexemeNum, line, scope;
 	string lexeme;
 	string lexemeName;
 	string productionRules;
-	bool artificial = false;	// set true for fake semicolons ONLY
 };
 
+int scope = 0;                      // 0 (default) is global scope; > 0 is local scope; < 0 error
 // Set to hold seperators
 static const unordered_set<char> SEPERATORS({'{', '}', '[', ']', '(', ')', ',', '.', ';', ':'});
 // Set to hold operators
@@ -99,9 +105,20 @@ static const unordered_set<char> OPERATORS({'+', '-', '*', '/', '=', '<', '>', '
 // Set to hold special characters
 static const unordered_set<char> SPECIALS({'!', '_'});
 // Set to hold keywords
-static const unordered_set<string> KEYWORDS({"int", "float", "bool", "True", "False",
+static const unordered_set<string> KEYWORDS({"int", "float", "bool", "boolean", "True", "False", "true", "false",
 											 "if", "else", "then", "endif", "endelse", "while", "whileend", "do",
 											 "enddo", "for", "endfor", "STDinput", "STDoutput", "and", "or", "not"});
+
+static const unordered_set<string> TYPES({"int", "float", "bool", "boolean"});
+
+static const unordered_set<string> CONDITIONALS({"if", "else", "then", "endif", "endelse", "while", "whileend", "do",
+											 "enddo", "for", "endfor", "STDinput", "STDoutput", "and", "or", "not"});
+
+static const unordered_set<string> COMPARATORS({"==", "<", ">"});
+
+static const unordered_set<string> CONDSTARTS({"if", "while", "do", "for", "{"});
+                                             
+static const unordered_set<string> CONDENDS({"endif", "whileend", "enddo", "endfor", "}"});
 
 /* PROTOTYPES FOR THE FUNCTIONS */
 vector<Token> lexer(string expression);
@@ -123,13 +140,28 @@ vector<Token> lexer(string expression, int line)
 	int charState = REJECT;
 	int currentState = REJECT;
 	int prevState = REJECT;
+    bool scopechanged = false;
 	string currentToken = "";
 
+    // Record line number currently being lexered
+    access.line = line;
 	// Go through each character
 	for (unsigned x = 0; x < expression.length();)
 	{
-        // Record line number currently being lexered
-        access.line = line;
+        /*else if (CONDENDS.find(access.lexeme) != CONDENDS.end())
+        {
+            if (access.lexeme != "}") 
+            {
+                scope = s - 1;
+            }
+        }
+        else if (CONDSTARTS.find(access.lexeme) != CONDSTARTS.end())
+        {
+            if (access.lexeme != "{") 
+            {
+                scope = s + 1;
+            }
+        }*/
 		// Check the current state of the character
 		currentChar = expression[x];
 		charState = getCharState(currentChar, prevState);
@@ -150,10 +182,28 @@ vector<Token> lexer(string expression, int line)
 
 				// Extra step for the KEYWORD and IDENTIFIER
 				if (access.lexemeName.compare("KEYWORD") == 0)
+                {
 					access.lexemeNum = KEYWORD;
+                }
 				else if (access.lexemeName.compare("IDENTIFIER") == 0)
+                {
 					access.lexemeNum = IDENTIFIER;
+                }
 
+                if (!scopechanged)
+                {
+                    if (CONDSTARTS.find(access.lexeme) != CONDSTARTS.end() && access.lexeme != "{")
+                    {
+                        scope++;
+                        scopechanged = true;
+                    }
+                    else if (CONDENDS.find(access.lexeme) != CONDENDS.end() && access.lexeme != "}")
+                    {
+                        scope--;
+                        scopechanged = true;
+                    }
+                }
+                access.scope = scope;
 				tokens.push_back(access);
 			}
 			currentToken = "";
@@ -175,10 +225,26 @@ vector<Token> lexer(string expression, int line)
 
 		// Extra step for the KEYWORD and IDENTIFIER
 		if (access.lexemeName.compare("KEYWORD") == 0)
+        {
 			access.lexemeNum = KEYWORD;
+        }
 		else if (access.lexemeName.compare("IDENTIFIER") == 0)
 			access.lexemeNum = IDENTIFIER;
 
+        if (!scopechanged)
+        {
+            if (CONDENDS.find(access.lexeme) != CONDENDS.end() && access.lexeme != "}")
+            {
+                scope--;
+                scopechanged = true;
+            }
+            else if (CONDSTARTS.find(access.lexeme) != CONDSTARTS.end() && access.lexeme != "{")
+            {
+                scope++;
+                scopechanged = true;
+            }
+        }                             
+        access.scope = scope;
 		tokens.push_back(access);
 	}
 	return tokens;
@@ -285,27 +351,33 @@ struct Symbol
     int memloc;
     string type;
     int lineNo;
+    int sc;
 
     Symbol ()
     {
 
     }
-    Symbol(string i, int loc, string t, int ln = 1)
+    Symbol(string i, int loc, string t, int ln = 1, int scp = 0)
     {
         iden = i;
         memloc = loc;
         type = t;
         lineNo = ln;
+        sc = scp;
+    }
+    string scopePrinter()
+    {
+        return (sc == 0 ? "Global" : "Local");
     }
 };
-
+//  process identifier type and crashes on error
 string format(string type)
 {
     if (type == "int")
     {
         return "integer";
     }
-    if (type == "bool")
+    if (type == "bool" || type == "boolean")
     {
         return "boolean";
     }
@@ -317,8 +389,8 @@ string format(string type)
     {
         return "real number";
     }
-    cout << "\n\n**[line 299/331 lexer.cpp] bad syntax error: identifier type is invalid **\n";
-    cout << "\n**Now Exiting... **\n\n";
+    cout << "\n\n**[line 374/416 lexer.cpp] bad syntax error: identifier type is invalid **\n\n**Now Exiting... **\n\n";
+    throw invalid_argument("bad identifier type");
     exit(-1);
     return "other";
 }
@@ -326,17 +398,27 @@ string format(string type)
 vector<Symbol> symbolTable (vector<Token> tkns)
 {  
     vector<Symbol> symbols;
+    unordered_set<string> nodupes;
     Token prev;
     int k = 0;
     for (auto tk: tkns)
     {
-        if (tk.lexemeNum == 10 && prev.lexemeNum == 9)
+        if (nodupes.count(tk.lexeme) == 1)
         {
-            Symbol S = Symbol (tk.lexeme, globalMemLoc + k, format(prev.lexeme), tk.line);
+            continue;
+        }
+        if (tk.lexemeNum != IDENTIFIER && tk.lexeme != ",")
+        {
+            prev = tk;
+        }
+        if (tk.lexemeNum == IDENTIFIER && prev.lexemeNum == KEYWORD)
+        {
+            Symbol S = Symbol (tk.lexeme, globalMemLoc + k, format(prev.lexeme), tk.line, tk.scope);
+            nodupes.insert(tk.lexeme);
             symbols.push_back(S);
             ++k;
         }
-        if (tk.lexemeNum != 10 && tk.lexeme != ",")
+        if (TYPES.find(tk.lexeme) != TYPES.end())
         {
             prev = tk;
         }
@@ -353,30 +435,37 @@ template<typename T> void print(T t, const int& width)
 void printST (vector<Symbol> ST)
 {
     cout << endl << "Symbol Table" << endl;
-    const char width0 = 25;
+    const char width0 = 23;
     const char width1 = 25;
-    const char width2 = 25;
-    print("Identifier", width0);
-    print("Memory Location", width0);
+    const char width2 = 30;
+    print("Identifier", width1);
+    print("Memory Location", width2);
     print("Type", width0);
     print("Line #", width0);
+    print("Scope", width1);
     cout << endl;
     for (auto S : ST)
     {
-        print(S.iden, width1);
+        print(S.iden, width2);
         print(S.memloc, width1);
         print(S.type, width1);
-        print(S.lineNo, width1);
+        print(S.lineNo, width0 - 3);
+        print(S.scopePrinter() + "(" + to_string(S.sc) + ")", width0);
         cout << endl;
     }
 }
 
-class Expr 
+// begin ParseExpr class
+// Helper class that uses stack table syntactical analysis
+// Accepted identifiers passed on to Symbol Table
+// Error catching method short circuits
+
+class ParseExpr 
 {
     public:
     stack<string> stk;                  // stack for pushing and popping table elements (shorthand production tokens)
     deque<string> fullstack;            // deque stores the whole stack contents for parse tree (only reset after statement or on new sentence)
-    Token token;
+    Token token, prevToken;             // tracks current and previous token
     string str2;                        // holds lexeme of current token in sentence passed into the interpret() function
     unordered_set<string> expansion;    // holds production rules from the stack in the proper order to be expanded and prevents duplicates
     vector<string> expanded;            // holds expanded production rules
@@ -385,15 +474,19 @@ class Expr
     bool assigned = false;              // false if an assignment-statement is needed (before EQUALS sign)
     bool decl = false;                  // declarative tracker (resets to false on new line)
     bool once = true;                   // prevent printing assignment-statement multiple times
-    bool artificial;                    // don't print production details for fake semicolons
-    pair<string,string> prodRules;      // experimental
 
+    int getScope()
+    {
+        return scope;
+    }
+    // check is stack table value a terminal
     bool isTerminal(string S) 
     {
         return  S == "*" || S == "/" || 
                 S == "+" || S == "-" ||
                 S == "i" || S == "#" || 
-                S == "(" || S == ")";
+                S == "(" || S == ")" ||
+                S == "{" || S == "}";
 
     }
     // Expression production rules starting with E -> T E'
@@ -421,6 +514,10 @@ class Expr
     {
         int col, row = -1;
         //  set any alphanumeric token to follow the rules for id
+        if (a == "\0")
+        {
+            return "";
+        }
         if (isalpha(a[0]))
         {
             a = "i";
@@ -445,8 +542,8 @@ class Expr
             case '#' : col=9; break;
             case 'n' : col=10; break;
             case ',' : col=11; break;
-            default  : cout << "\n[line 119/106/97 expr.cpp] SYNTAX ERROR while looking up table : "+a+" is not a valid token!\n"
-                             "**Now Exiting...";
+            default  : cout << "\n**[line 513/922 lexer.cpp] SYNTAX ERROR while looking up table : "+a+" is not a valid token!**\n"
+                             "**Now Exiting...**";
                        exit(-1); 
                        break;
         }
@@ -491,15 +588,10 @@ class Expr
             
             return "";
         }
-        if (artificial && str2[0] == ';')
+        if (token.lexemeNum == KEYWORD || str2 == "\0")
         {
             return "";
         }
-        if (token.lexemeNum == KEYWORD)
-        {
-            return "";
-        }
-            
         //  Production Rules for all tokens belonging to Expression are printed here
         for (char c : S)
         {
@@ -581,11 +673,15 @@ class Expr
             tmp = "INTEGER";
             if (prev == tmp)
             {
-                cout << "\n[line 236/217 expr.cpp] CRITICAL SYNTAX ERROR : Consecutive " << tmp << " tokens found in the sentence!\n** Now Exiting..."; exit(1);
+                cout << "\n[line 674/658 lexer.cpp] CRITICAL SYNTAX ERROR : Consecutive " << tmp << " tokens found in the sentence!\n** Now Exiting..."; exit(1);
             }
             prev = tmp;
             tmp2 = tk;
             return "INTEGER";
+        }
+        if (tk == "\0")
+        {
+            return ("NOTHING (New line)");
         }
         //  crashes for wrong syntax: consecutive Operators
         if (OPERATORS.find(tk[0]) != OPERATORS.end())
@@ -593,7 +689,7 @@ class Expr
             tmp = "OPERATOR";
             if (prev == tmp)
             {
-                cout << "\n** [line 248/217 expr.cpp] SYNTAX ERROR : Consecutive " << tmp << " tokens found in the sentence!\n** Now Exiting..."; exit(1);
+                cout << "\n** [line 690/658 lexer.cpp] SYNTAX ERROR : Consecutive " << tmp << " tokens found in the sentence!\n** Now Exiting..."; exit(1);
             }
             prev = tmp;
             tmp2 = tk;
@@ -605,34 +701,34 @@ class Expr
             tmp = "SEPARATOR";
             if (tk == ";" && prev == "OPERATOR")
             {
-                cout << "\n** [line 260/217 expr.cpp] SYNTAX ERROR : " << tmp << " right before " << tk << " token!\n** Now Exiting..."; exit(1);
+                cout << "\n** [line 702/658 lexer.cpp] SYNTAX ERROR : " << tmp << " right before " << tk << " token!\n** Now Exiting..."; exit(1);
                 exit(1);
             }
             if (tk == tmp2)
             {
                 if (tk != "(" && tk != ")")
                 {
-                    cout << "\n** [line 267/217 expr.cpp] SYNTAX ERROR : consecutive " << tk << " tokens in the same sentence!\n** Now Exiting..."; exit(1);
+                    cout << "\n** [line 709/658 lexer.cpp] SYNTAX ERROR : consecutive " << tk << " tokens in the same sentence!\n** Now Exiting..."; exit(1);
                 }
                 cout << "\nWarning : consecutive " << tk << " tokens encountered\n";
             }
             else if (tmp2 == "(" && tk == ")")
             {
-                cout << "\n** [line 273/217 expr.cpp] SYNTAX ERROR : Empty parenthetical enclosure\n** Now Exiting..."; exit(1);
+                cout << "\n** [line 715/658 lexer.cpp] SYNTAX ERROR : Empty parenthetical enclosure\n** Now Exiting..."; exit(1);
             }
             prev = tmp;
             tmp2 = tk;
-            return (artificial ? "NOTHING (FAKE SEMICOLON)" : "SEPARATOR");
+            return ("SEPARATOR");
         }
         //  crashes if a token that does not belong to any of the above groups made it to this point
         cout << tk << endl;
-        cout << "\n** [line 282/217 expr.cpp] SYNTAX ERROR : Illegal or mismatched token present in the sentence!\n** Now Exiting..."; exit(1);
+        cout << "\n** [line 658/768 lexer.cpp] SYNTAX ERROR : Illegal or mismatched token present in the sentence!\n** Now Exiting..."; exit(1);
         return NULL;
     }
 
     bool interpret (vector<Token> tkns)
     {
-        //token = tkns[0];
+        prevToken = Token();
         str2 = token.lexeme;
         string sentence;
         while (!stk.empty()) { stk.pop();}
@@ -641,7 +737,6 @@ class Expr
         //  Print the contents of the sentence
         //  Print the token and lexeme about to be syntactically analyzed    
         //  Start stack with basic default elements
-            //cout << "Token: " << getLex(token) << "      " << "Lexeme:    " << token.lexeme << endl;
             stk.push("$"); 
             stk.push("E");
             fullstack.push_front("E");
@@ -649,13 +744,13 @@ class Expr
             {
                 sentence += tk.lexeme;
             }
-        int index;                                      // only holds index of first EQUALS sign, if one exists
+        int index;                                              // only holds index of first EQUALS sign, if one exists
         //  ignore comment blocks and special characters
         if (sentence[curr] == '!' || sentence[curr] == '_')     // don't parse if these characters are found
         {
             return false;
         }
-        if ((index = sentence.find('=')) == string::npos)   // if no EQUALS sign present skip statement assignment
+        if ((index = sentence.find('=')) == string::npos)       // if no EQUALS sign present skip statement assignment
         {
             assigned = true;
         }
@@ -666,21 +761,69 @@ class Expr
         for(auto tkn : tkns) {
             token = tkn;
             str2 = token.lexeme;
+            string stprev = prevToken.lexeme;
             //  Print the token and lexeme about to be syntactically analyzed
             print("\nToken: ", 8);
             print(getLex(token), 20);
             print("Lexeme: ", 8);
             print(token.lexeme, 20);
             cout << endl;
-            if (tkn.lexeme == ",")
+            if (str2 == ",")
             { 
                 stk.push("T");
                 fullstack.push_front("T");
                 continue;
             }
+            if (COMPARATORS.find(str2) != COMPARATORS.end())
+            {
+                if (prevToken.lexemeNum != IDENTIFIER && prevToken.lexemeNum != INTEGER && prevToken.lexemeNum != REAL)
+                {
+                    cout << "\n**[line 780/729 lexer.cpp] Bad Syntax Error : Invalid comparison of a non-identifier non-numeric token **\n Now Exiting..." ; exit(-1);
+                }
+                stk.push("T");
+                fullstack.push_front("T");
+                prevToken = token;
+                continue;
+            }
+            else if (COMPARATORS.find(stprev) != COMPARATORS.end())
+            {
+                if (token.lexemeNum != IDENTIFIER && token.lexemeNum != INTEGER && token.lexemeNum != REAL)
+                {
+                    cout << "\n**[line 791/729 lexer.cpp] Bad Syntax Error : Invalid comparison of a non-identifier non-numeric token **\n Now Exiting..." ; exit(-1);
+                }
+            }
+            if (CONDENDS.find(str2) != CONDENDS.end())
+            {
+                if (prevToken.lexeme != "")
+                {
+                    cout << "\n**[line 798/729 lexer.cpp] Bad Syntax Error : end of conditional statement preceded by invalid token **\n Now Exiting..." ; exit(-1);
+                }
+                prevToken = token;
+
+                if (str2 == "}" && scope >= 0) 
+                { 
+                    continue;
+                }
+                if (scope < 0)
+                {
+                    cout << "\n**[line 806/729 lexer.cpp] Bad Syntax Error : scope value below 0 -> end of conditional before start **\n Now Exiting..." ; exit(-1);
+                }
+            }
+            else if (CONDSTARTS.find(str2) != CONDSTARTS.end())
+            {
+                if (prevToken.lexeme != "")
+                {
+                    cout << "\n**[line 814/729 lexer.cpp] Bad Syntax Error : start of conditional statement preceded by invalid token **\n Now Exiting..." ; exit(-1);
+                }
+                prevToken = token;
+                if (str2 == "{") 
+                {
+                    continue;
+                }
+            }
             for (;;)
             {
-            a = token.lexeme[0];
+            a = token.lexeme;
             X = stk.top();
             //  Special conditions for declarative statement
             //  Special conditions for assignment statement
@@ -690,8 +833,11 @@ class Expr
                 {
                     if (auto j = count(sentence.begin(), sentence.end(), '=') > 1 )      //  logic check for bad syntax
                     {
-                        cout << "Forbidden syntax: " << j << " occurences of the EQUALS sign { = } found \n";
-                        cout << "[line 318/286 expr.cpp] Bad Syntax Error : multiple instances of the lexeme { " << a << " } were found in the current sentence\n** Now Exiting..."; exit(-1);
+                        if (size_t k = sentence.find("==") == string::npos)
+                        {
+                            cout << "Forbidden syntax: " << j << " occurences of the EQUALS sign { = } found \n";
+                            cout << "**[line 836/729 lexer.cpp] Bad Syntax Error : multiple instances of the lexeme { " << a << " } were found in the current sentence\n** Now Exiting..."; exit(-1);
+                        }  
                     }
                 }
                 //  don't assign after EQUALS sign
@@ -718,9 +864,10 @@ class Expr
                         stk.push("E");
                         fullstack.push_front("E");
                     }
+                    //  save token to backup
+                    prevToken = token;
                     curr++;
                     k++;
-                    //cout << formatPRs(token);
                     if (!assigned)
                     {
                         assigned = true;
@@ -731,9 +878,12 @@ class Expr
                 //  Semicolon denotes end of current sentence so process the completed expansion set and clear all values for the next sentence
                 //  If not a semicolon the syntax must be wrong -> crash
                 {
-                    if (token.lexeme == ";")
+                    if (token.lexeme == ";" || token.lexeme == "\0")
                     {
-                        fullstack.push_front("&");
+                        if (token.lexeme == ";")
+                        {
+                            fullstack.push_front("&");
+                        }
                         expandTerms();
                         expansion.clear();
                         cout << "\nParse Tree contents (& stands for Epsilon): \n";
@@ -759,7 +909,7 @@ class Expr
                         once = true;
                         return true;
                     }
-                    cout << "\n** [line 352/331/286 expr.cpp] SYNTAX ERROR: interpreted value = false\nreason : bad token " 
+                    cout << "\n** [line 877/848/729 lexer.cpp] SYNTAX ERROR: interpreted value = false\nreason : bad token " 
                          << a << " is not compatible with stack top " << X << "\n** Now Exiting...";
                     exit(1);
                     return false;
@@ -787,9 +937,10 @@ class Expr
                     fullstack.clear();
                     fullstack.push_front("E");
                     assigned = true;
+                    // save token to backup
+                    prevToken = token;
                     curr++;
                     k++;
-                    //cout << formatPRs(token);
                     break;
                 }
                 //  Immediately process top value of stack and expansion
@@ -808,7 +959,7 @@ class Expr
                     }
                     if (prod == "nil")
                     {
-                        cout << "\n** [line 417/387/97/286 expr.cpp] SYNTAX ERROR - interpreted value = false\nreason : token "
+                        cout << "\n** [line 960/922/513 lexer.cpp] SYNTAX ERROR - interpreted value = false\nreason : token "
                             << a << " has broken a nil production rule\n** Now Exiting...";
                         exit(-1);
                         return false;
@@ -823,7 +974,7 @@ class Expr
                     fullstack.push_front(stk.top());
                     expansion.insert(expansion.begin(), prod.substr(i,1));
                     // Insert EPSILON if requirements are met                  
-                    if ((a == "+" || a == "-" || a == "*" || a == "/") && (prod[i] == 'e' || prod[i] == 't'))
+                    if ((str2 != "\0") && (a == "+" || a == "-" || a == "*" || a == "/") && (prod[i] == 'e' || prod[i] == 't'))
                     {
                         expansion.insert("~");      // for EPSILON use
                         fullstack.push_front("&");  // "&" is EPSILON for printing parse tree
@@ -831,7 +982,7 @@ class Expr
                     }
                 }
                 // Insert EPSILON if table lookup condition is met    
-                if (prod == "")
+                if (prod == "" && str2 != "\0")
                 {
                     expansion.insert("~");      // for EPSILON use
                     fullstack.push_front("&");  // "&" is EPSILON for printing parse tree
@@ -861,12 +1012,7 @@ class Expr
         expanded = tmp;
         return tmp;
     }
-    // Just a basic call to reduce confusion with lexer's own artificial construct
-    void setArtificial (bool b)
-    {
-        artificial = b;
-    }
-
+    // Format Production Tokens for printing
     string formatPRs (Token tk)
     {
         string cc;
@@ -883,5 +1029,5 @@ class Expr
         }
         return cc;
     }
-};
+}; // end ParseExpr class
 
