@@ -85,7 +85,7 @@ int stateTable[][9] = {
 */
 struct Token
 {
-	int lexemeNum, line;
+	int lexemeNum;
 	string lexeme;
 	string lexemeName;
 	string productionRules;
@@ -114,7 +114,7 @@ string getLexemeName(int lexemeNum, string token);
 *	@param expression - the code line
 *	@return tokens - a list of tokens
 */
-vector<Token> lexer(string expression, int line)
+vector<Token> lexer(string expression)
 {
 	// Variable for the state machine
 	Token access;
@@ -128,8 +128,7 @@ vector<Token> lexer(string expression, int line)
 	// Go through each character
 	for (unsigned x = 0; x < expression.length();)
 	{
-        // Record line number currently being lexered
-        access.line = line;
+
 		// Check the current state of the character
 		currentChar = expression[x];
 		charState = getCharState(currentChar, prevState);
@@ -277,25 +276,23 @@ string getLexemeName(int lexemeNum, string lexeme)
 	};
 };
 
-static const int globalMemLoc = 2000;
+static int globalMemLoc = 2000;
 
 struct Symbol
 {
     string iden;
     int memloc;
     string type;
-    int lineNo;
 
     Symbol ()
     {
 
     }
-    Symbol(string i, int loc, string t, int ln = 1)
+    Symbol(string i, int loc, string t)
     {
         iden = i;
         memloc = loc;
         type = t;
-        lineNo = ln;
     }
 };
 
@@ -332,7 +329,7 @@ vector<Symbol> symbolTable (vector<Token> tkns)
     {
         if (tk.lexemeNum == 10 && prev.lexemeNum == 9)
         {
-            Symbol S = Symbol (tk.lexeme, globalMemLoc + k, format(prev.lexeme), tk.line);
+            Symbol S = Symbol (tk.lexeme, globalMemLoc + k, format(prev.lexeme));
             symbols.push_back(S);
             ++k;
         }
@@ -359,14 +356,12 @@ void printST (vector<Symbol> ST)
     print("Identifier", width0);
     print("Memory Location", width0);
     print("Type", width0);
-    print("Line #", width0);
     cout << endl;
     for (auto S : ST)
     {
         print(S.iden, width1);
         print(S.memloc, width1);
         print(S.type, width1);
-        print(S.lineNo, width1);
         cout << endl;
     }
 }
@@ -377,13 +372,13 @@ class Expr
     stack<string> stk;                  // stack for pushing and popping table elements (shorthand production tokens)
     deque<string> fullstack;            // deque stores the whole stack contents for parse tree (only reset after statement or on new sentence)
     Token token;
-    string str2;                        // holds lexeme of current token in sentence passed into the interpret() function
+    string str2;                        // holds each sentence passed into the interpret()
     unordered_set<string> expansion;    // holds production rules from the stack in the proper order to be expanded and prevents duplicates
     vector<string> expanded;            // holds expanded production rules
     string prev;                        // holds previous lexeme, used for syntax checks
     int curr = 0;                       // current string ptr
     bool assigned = false;              // false if an assignment-statement is needed (before EQUALS sign)
-    bool decl = false;                  // declarative tracker (resets to false on new line)
+    bool decl = false;                  // declarative finder
     bool once = true;                   // prevent printing assignment-statement multiple times
     bool artificial;                    // don't print production details for fake semicolons
     pair<string,string> prodRules;      // experimental
