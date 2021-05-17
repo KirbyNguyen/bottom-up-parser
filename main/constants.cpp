@@ -69,7 +69,7 @@ enum STATE
     STATE_ERROR
 };
 
-int stateTable[16][11] = {
+int grammarStateTable[16][11] = {
     {S5,    EMPTY,  EMPTY,  EMPTY,  EMPTY,  S4,     EMPTY,  EMPTY,  N1,     N2,     N3},
     {EMPTY, S6,     S7,     EMPTY,  EMPTY,  EMPTY,  EMPTY,  ACCT,   EMPTY,  EMPTY,  EMPTY},
     {EMPTY, R3,     R3,     S8,     S9,     EMPTY,  R3,     R3,     EMPTY,  EMPTY,  EMPTY},

@@ -116,7 +116,7 @@ int main()
     while (isLoop)
     {
         int parseResult = tokenParser(tokens[inputIndex]);
-        int x = stateTable[currentState][parseResult];
+        int x = grammarStateTable[currentState][parseResult];
         int Qj, Qk;
         switch (x)
         {
@@ -166,56 +166,56 @@ int main()
             popStack(6);
             Qj = stoi(helperStack.top());
             helperStack.push("E");
-            Qk = stateTable[Qj][E_STATE];
+            Qk = grammarStateTable[Qj][E_STATE];
             currentState = pushGoTo(Qk);
             break;
         case R2:
             popStack(6);
             Qj = stoi(helperStack.top());
             helperStack.push("E");
-            Qk = stateTable[Qj][E_STATE];
+            Qk = grammarStateTable[Qj][E_STATE];
             currentState = pushGoTo(Qk);
             break;
         case R3:
             popStack(2);
             Qj = stoi(helperStack.top());
             helperStack.push("E");
-            Qk = stateTable[Qj][E_STATE];
+            Qk = grammarStateTable[Qj][E_STATE];
             currentState = pushGoTo(Qk);
             break;
         case R4:
             popStack(6);
             Qj = stoi(helperStack.top());
             helperStack.push("T");
-            Qk = stateTable[Qj][T_STATE];
+            Qk = grammarStateTable[Qj][T_STATE];
             currentState = pushGoTo(Qk);
             break;
         case R5:
             popStack(6);
             Qj = stoi(helperStack.top());
             helperStack.push("T");
-            Qk = stateTable[Qj][T_STATE];
+            Qk = grammarStateTable[Qj][T_STATE];
             currentState = pushGoTo(Qk);
             break;
         case R6:
             popStack(2);
             Qj = stoi(helperStack.top());
             helperStack.push("T");
-            Qk = stateTable[Qj][T_STATE];
+            Qk = grammarStateTable[Qj][T_STATE];
             currentState = pushGoTo(Qk);
             break;
         case R7:
             popStack(6);
             Qj = stoi(helperStack.top());
             helperStack.push("F");
-            Qk = stateTable[Qj][F_STATE];
+            Qk = grammarStateTable[Qj][F_STATE];
             currentState = pushGoTo(Qk);
             break;
         case R8:
             popStack(2);
             Qj = stoi(helperStack.top());
             helperStack.push("F");
-            Qk = stateTable[Qj][F_STATE];
+            Qk = grammarStateTable[Qj][F_STATE];
             currentState = pushGoTo(Qk);
             break;
         case ACCT:
